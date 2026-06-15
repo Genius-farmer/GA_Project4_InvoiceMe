@@ -4,10 +4,82 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client"
-  output   = "../generated/prisma"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+  url = env("DATABASE_URL")
+}
+
+// status values match your TRANSITIONS map: draft -> sent -> paid
+enum InvoiceStatus {
+  draft
+  sent
+  paid
+}
+
+model User {
+  id              Int     @id @default(autoincrement())
+  username        String  @unique @db.VarChar(30)
+  email           String  @unique @db.VarChar(255)
+  passwordHash    String  @map("password_hash") @db.VarChar(255)
+  role            String  @default("user") @db.VarChar(50)
+  isActive        Boolean @default(true) @map("is_active") // enforced at sign-in (403 if false)
+
+  clients  Client[] // one user has many clients
+  invoices Invoice[] // one user has many invoices
+
+  @@map("users")
+
+}
+
+model Client {
+  id              Int     @id @default(autoincrement())
+  userId          Int     @map("user_id")
+  companyName     String  @map("company_name") @db.VarChar(255)
+  billingAddress  String  @map("billing_address") @db.VarChar(255)
+  companyEmail    String  @map("company_email") @db.VarChar(255)
+
+  user  User    @relation(fields: [userId], references: [id])
+  invoices Invoice[]
+
+  @@map("clients")
+}
+
+model Invoice {
+  id              Int           @id @default(autoincrement())
+  userId          Int           @map("user_id")
+  clientId        Int           @map("client_id")
+  invoiceNumber   String        @map("invoice_number") @db.VarChar(255)
+  issueDate       DateTime      @map("issue_date") @db.Date
+  dueDate         DateTime      @map("due_date") @db.Date
+  subtotal        Decimal       @db.Decimal(10, 2)
+  taxRate         Decimal       @map("tax_rate") @db.Decimal(5,2)
+  notes           String?       @db.VarChar(255) // optional
+  term            String?       @db.VarChar(255) // optional
+  status          InvoiceStatus @default(draft)
+  paidAt          DateTime?     @map("paid_at") @db.Date // nullable, set when paid; dashboard groups by this
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at") // Prisma maintains this automatically
+
+  user  User  @relation(fields: [userId], references: [id])
+  client Client @relation(fields: [clientId], references: [id])
+  lineItems LineItem[]
+
+  @@unique([userId, invoiceNumber]) // invoice numbers unique per user
+  @@map("invoices")
+}
+
+model LineItem {
+  id              Int           @id @default(autoincrement())
+  invoiceId       Int           @map("invoice_id")
+  gigRole         String        @map("gig_role") @db.VarChar(255)
+  gigDescription  String        @map("gig_description") @db.VarChar(255)
+  quantity        Decimal       @db.Decimal(10, 2)
+  unitCost        Decimal       @map("unit_cost") @db.Decimal(10,2)
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade) // delete invoice --> line item go too
+
+  @@map("line_items")
 }
