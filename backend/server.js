@@ -1,0 +1,26 @@
+import "dotenv/config";
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import prisma from "./lib/prisma.js";
+
+const app = express();
+const PORT = process.env.PORT || 3000; //3000 is backup
+
+app.use(helmet()); //sets safe HTTP headers
+app.use(cors()); //let your React app call this API
+app.use(express.json()); //parse JSON bodies into JS objects
+
+// health check - also indicates the DB connection works end to end
+app.get("/api/health", async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ status: "ok", db: "connected" });
+  } catch (error) {
+    res.status(500).json({ status: "error", db: "disconnected" });
+  }
+});
+
+app.listen(PORT, () => {
+  console.log(`Server running on http://localhost:${PORT}`);
+});
