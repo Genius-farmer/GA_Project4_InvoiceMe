@@ -6,6 +6,8 @@ import helmet from "helmet";
 import prisma from "./src/lib/prisma.js";
 
 import authRouter from "./src/routes/auth.js";
+import clientRouter from "./src/routes/clients.js";
+import { requireAuth } from "./src/middleware/auth.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000; //3000 is backup
@@ -15,6 +17,7 @@ app.use(cors()); //let your React app call this API
 app.use(express.json()); //parse JSON bodies into JS objects
 
 app.use("/api/auth", authRouter);
+app.use("/api/clients", requireAuth, clientRouter);
 
 // health check - also indicates the DB connection works end to end
 app.get("/api/health", async (req, res) => {
