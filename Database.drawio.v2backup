@@ -1,11 +1,11 @@
 <mxfile host="Electron">
   <diagram name="Page-1" id="JBrdZRYw9A0cXg-8Cn5s">
-    <mxGraphModel dx="706" dy="556" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+    <mxGraphModel dx="1126" dy="809" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
         <mxCell id="Ap6I9trFGH-r00wadkVC-1" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Users" vertex="1">
-          <mxGeometry height="240" width="320" x="40" y="160" as="geometry">
+          <mxGeometry height="210" width="320" x="40" y="160" as="geometry">
             <mxRectangle height="30" width="70" x="40" y="180" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
@@ -116,18 +116,6 @@
           <mxGeometry height="30" width="120" x="200" as="geometry">
             <mxRectangle height="30" width="120" as="alternateBounds" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invcounter" parent="Ap6I9trFGH-r00wadkVC-1" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
-          <mxGeometry height="30" width="320" y="210" as="geometry" />
-        </mxCell>
-        <mxCell id="v2-invcounter-mark" parent="v2-invcounter" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
-          <mxGeometry height="30" width="40" as="geometry"><mxRectangle height="30" width="40" as="alternateBounds" /></mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invcounter-name" parent="v2-invcounter" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="invoice_counter" vertex="1">
-          <mxGeometry height="30" width="160" x="40" as="geometry"><mxRectangle height="30" width="160" as="alternateBounds" /></mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invcounter-type" parent="v2-invcounter" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="int" vertex="1">
-          <mxGeometry height="30" width="120" x="200" as="geometry"><mxRectangle height="30" width="120" as="alternateBounds" /></mxGeometry>
         </mxCell>
         <mxCell id="Ap6I9trFGH-r00wadkVC-33" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Clients" vertex="1">
           <mxGeometry height="210" width="320" x="520" y="160" as="geometry">
@@ -243,7 +231,7 @@
           </mxGeometry>
         </mxCell>
         <mxCell id="Ap6I9trFGH-r00wadkVC-58" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Invoices" vertex="1">
-          <mxGeometry height="480" width="320" x="40" y="520" as="geometry">
+          <mxGeometry height="450" width="320" x="40" y="520" as="geometry">
             <mxRectangle height="30" width="70" x="40" y="180" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
@@ -440,7 +428,7 @@
             <mxRectangle height="30" width="160" as="alternateBounds" />
           </mxGeometry>
         </mxCell>
-        <mxCell id="Ap6I9trFGH-r00wadkVC-144" parent="Ap6I9trFGH-r00wadkVC-141" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="InvoiceStatus" vertex="1">
+        <mxCell id="Ap6I9trFGH-r00wadkVC-144" parent="Ap6I9trFGH-r00wadkVC-141" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="varchar_20" vertex="1">
           <mxGeometry height="30" width="120" x="200" as="geometry">
             <mxRectangle height="30" width="120" as="alternateBounds" />
           </mxGeometry>
@@ -498,18 +486,6 @@
           <mxGeometry height="30" width="120" x="200" as="geometry">
             <mxRectangle height="30" width="120" as="alternateBounds" />
           </mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invseq" parent="Ap6I9trFGH-r00wadkVC-58" style="shape=tableRow;horizontal=0;startSize=0;swimlaneHead=0;swimlaneBody=0;fillColor=none;collapsible=0;dropTarget=0;points=[[0,0.5],[1,0.5]];portConstraint=eastwest;top=0;left=0;right=0;bottom=0;" value="" vertex="1">
-          <mxGeometry height="30" width="320" y="450" as="geometry" />
-        </mxCell>
-        <mxCell id="v2-invseq-mark" parent="v2-invseq" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;editable=1;overflow=hidden;whiteSpace=wrap;html=1;" value="" vertex="1">
-          <mxGeometry height="30" width="40" as="geometry"><mxRectangle height="30" width="40" as="alternateBounds" /></mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invseq-name" parent="v2-invseq" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="invoice_seq" vertex="1">
-          <mxGeometry height="30" width="160" x="40" as="geometry"><mxRectangle height="30" width="160" as="alternateBounds" /></mxGeometry>
-        </mxCell>
-        <mxCell id="v2-invseq-type" parent="v2-invseq" style="shape=partialRectangle;connectable=0;fillColor=none;top=0;left=0;bottom=0;right=0;align=left;spacingLeft=6;overflow=hidden;whiteSpace=wrap;html=1;" value="int" vertex="1">
-          <mxGeometry height="30" width="120" x="200" as="geometry"><mxRectangle height="30" width="120" as="alternateBounds" /></mxGeometry>
         </mxCell>
         <mxCell id="Ap6I9trFGH-r00wadkVC-100" parent="1" style="shape=table;startSize=30;container=1;collapsible=1;childLayout=tableLayout;fixedRows=1;rowLines=0;fontStyle=1;align=center;resizeLast=1;html=1;" value="Line_items" vertex="1">
           <mxGeometry height="308" width="320" x="520" y="520" as="geometry">

@@ -12,11 +12,12 @@ datasource db {
   url = env("DATABASE_URL")
 }
 
-// status values match your TRANSITIONS map: draft -> sent -> paid
+// status values match your TRANSITIONS map: draft -> issued -> paid (+ cancelled)
 enum InvoiceStatus {
   draft
-  sent
+  issued
   paid
+  cancelled
 }
 
 model User {
@@ -26,6 +27,7 @@ model User {
   passwordHash    String  @map("password_hash") @db.VarChar(255)
   role            String  @default("user") @db.VarChar(50)
   isActive        Boolean @default(true) @map("is_active") // enforced at sign-in (403 if false)
+  invoiceCounter  Int     @default(0) @map("invoice_counter") // drives the private per-user sequence
 
   clients  Client[] // one user has many clients
   invoices Invoice[] // one user has many invoices
@@ -51,7 +53,8 @@ model Invoice {
   id              Int           @id @default(autoincrement())
   userId          Int           @map("user_id")
   clientId        Int           @map("client_id")
-  invoiceNumber   String        @map("invoice_number") @db.VarChar(255)
+  invoiceSeq      Int?          @map("invoice_seq")     //private per-user sequence, set at issue
+  invoiceNumber   String?       @map("invoice_number") @db.VarChar(255) // opaque public code, set at issue
   issueDate       DateTime      @map("issue_date") @db.Date
   dueDate         DateTime      @map("due_date") @db.Date
   subtotal        Decimal       @db.Decimal(10, 2)
@@ -67,19 +70,20 @@ model Invoice {
   client Client @relation(fields: [clientId], references: [id])
   lineItems LineItem[]
 
-  @@unique([userId, invoiceNumber]) // invoice numbers unique per user
+  @@unique([userId, invoiceSeq])
+  @@unique([userId, invoiceNumber])
   @@map("invoices")
 }
 
 model LineItem {
-  id              Int           @id @default(autoincrement())
-  invoiceId       Int           @map("invoice_id")
-  gigRole         String        @map("gig_role") @db.VarChar(255)
-  gigDescription  String        @map("gig_description") @db.VarChar(255)
-  quantity        Decimal       @db.Decimal(10, 2)
-  unitCost        Decimal       @map("unit_cost") @db.Decimal(10,2)
+  id             Int      @id @default(autoincrement())
+  invoiceId      Int      @map("invoice_id")
+  gigRole        String?  @map("gig_role") @db.VarChar(255)
+  gigDescription String?  @map("gig_description") @db.VarChar(255)
+  quantity       Decimal? @db.Decimal(10, 2)
+  unitCost       Decimal? @map("unit_cost") @db.Decimal(10, 2)
 
-  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade) // delete invoice --> line item go too
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
 
   @@map("line_items")
 }

@@ -1,92 +1,138 @@
 # Project 4 — Invoice App · Project Brief (Source of Truth)
 
-> Consolidated from the earlier "Project 4 invoice app" planning chat so this project folder
-> has the latest agreed requirements and progress. Last updated: 2026-06-14.
+> Living document. Last updated: 2026-06-17.
 
 ## 1. What this is
 
 A web invoice app for freelancers (General Assembly Project 4). A freelancer signs in,
 manages their clients, creates invoices made up of line items, tracks each invoice through
-its lifecycle (draft → sent → paid), and views an earnings dashboard. The invoice detail
-page doubles as the printable invoice.
+its lifecycle (**draft → issued → paid**, with **cancelled** for voids), and views an
+earnings dashboard. The invoice detail page doubles as the printable invoice.
 
-**Stack:** Prisma ORM + Node/Express backend + React frontend (the `backend/` and
-`frontend/` folders are scaffolded). Database choice and the schema below need instructor
-sign-off (see §7, rubric 6.2) before building.
+**Stack:** Prisma ORM + PostgreSQL + Node/Express backend (ESM) + React frontend.
+Instructor has signed off on the stack and the schema additions. ✓
 
 **Dashboard premise:** "earnings per month." Earnings are grouped by **`paid_at`** (money
 _collected_), not `issue_date` (money _billed_). Keeping both dates also makes a future
 "billed vs collected" two-bar chart fall out for free.
 
-## 2. Data model (current ERD)
+## 2. Architecture & conventions (how it's actually built)
 
-The `Database.drawio` ERD in this folder reflects the v2 schema below. Four tables:
+- **Folder layout:** `server.js` at the backend root (entry point); all app code in `src/`
+  (`lib/`, `middleware/`, `controller/`, `routes/`); `prisma/` and `.env` stay at the root.
+- **Auth:** JWT bearer tokens, `bcrypt` password hashing, a `requireAuth` middleware that
+  verifies the token, loads the user, and **re-checks `is_active` on every request** (so a
+  deactivated user's existing token stops working immediately).
+- **HTTP conventions:** PUT for create, POST for sign-in, PATCH for partial update, DELETE
+  for delete. Routers use default exports; controllers/middleware use named exports.
+- **Guard clauses everywhere** — validate/reject at the top, happy path stays flat.
+- **Ownership scoping:** every query is filtered by `req.user.id`, and `userId` is always
+  taken from the token, never the request body. This is the authorization layer.
+- **Money math is server-side:** `subtotal` is computed from line items on the server, never
+  trusted from the client. Prisma `Decimal` fields serialize to JSON as **strings** →
+  `Number()` them at the boundary before doing math.
 
-**Users** — `id` (PK), `username`, `email` (unique), `password_hash`, `role`, `is_active` (boolean).
+## 3. Data model (current ERD — `Database.drawio`)
+
+**Users** — `id` (PK), `username` (unique), `email` (unique), `password_hash`, `role`,
+`is_active` (boolean), `invoice_counter` (int — drives the private per-user sequence).
 **Clients** — `id` (PK), `user_id` (FK), `company_name`, `billing_address`, `company_email`.
-**Invoices** — `id` (PK), `user_id` (FK), `client_id` (FK), `invoice_number`, `issue_date`,
-`due_date`, `subtotal`, `tax_rate`, `notes`, `term`, `status`, `created_at`, `paid_at`, `updated_at`.
-**Line_items** — `id` (PK), `invoice_id` (FK), `gig_role`, `gig_description`, `quantity`, `unit_cost`.
+**Invoices** — `id` (PK), `user_id` (FK), `client_id` (FK), `invoice_seq` (nullable),
+`invoice_number` (nullable), `issue_date`, `due_date`, `subtotal`, `tax_rate`, `notes`,
+`term`, `status` (enum), `paid_at`, `created_at`, `updated_at`.
+**Line_items** — `id` (PK), `invoice_id` (FK, cascade delete), `gig_role`, `gig_description`,
+`quantity`, `unit_cost` — **content fields are nullable** so drafts can hold partial line items;
+they're required only at issue.
 
-Relationships: User 1—_ Client, User 1—_ Invoice, Client 1—_ Invoice, Invoice 1—_ Line_item.
+Relationships: User 1—* Client, User 1—* Invoice, Client 1—* Invoice, Invoice 1—* Line_item.
+Constraints: `@@unique([userId, invoiceSeq])` and `@@unique([userId, invoiceNumber])`.
 
-## 3. The 7 agreed schema changes (v2)
+## 4. Invoice numbering — the dual-number scheme
 
-Four real gaps and three minor changes were reviewed and accepted, plus refinements from the
-original Claude chat. All are now folded into the schema and ERD.
+Two identifiers, both assigned **at issue** (not at draft creation):
 
-1. **`is_active` on User** — Route 16 ("deactivate user") had no field to act on. Deactivation
-   only means something if **sign-in checks the flag and rejects with 403**; otherwise it updates
-   a row nobody reads.
-2. **`paid_at` on Invoice** (nullable date) — disambiguates which month a paid invoice belongs
-   to. Dashboard groups by `paid_at` (collection date) for the honest earnings number.
-3. **`@@unique([userId, invoiceNumber])`** — invoice numbers are unique _per user_, not global
-   (freelancers shouldn't collide with each other's numbering).
-4. **`createdAt DateTime @default(now())` / `updatedAt DateTime @updatedAt`** — `@updatedAt`
-   makes Prisma maintain the timestamp automatically on every update, no code needed.
-   (ERD `created_at` was previously typed `varchar_20`; corrected to `TIMESTAMP`.)
-5. **Status transition map** — define once and validate the PATCH handler against it:
-   ```js
-   const TRANSITIONS = { draft: ["sent"], sent: ["paid", "draft"], paid: [] };
-   ```
-   Allows `sent → draft` rollback (caught a typo after sending); **`paid` is terminal** — once
-   money has moved, corrections are a new invoice or credit note, not a mutation.
-6. **Decimal-at-the-boundary** — Prisma `Decimal` fields serialize to JSON as **strings**, so
-   `"100" + "50"` becomes `"10050"` in live-total math. `Number()` them at the API boundary to
-   kill the whole class of bug.
-7. **Minor hygiene** — accepted alongside the above (per-user numbering, timestamp handling, and
-   the transition map define the bulk of it).
+- **`invoice_seq` — private per-user sequence** (`#1, #2, #3…`). Driven by `User.invoice_counter`,
+  which is **atomically incremented inside a transaction** at issue time. Shown only inside the
+  freelancer's authenticated dashboard, so leaking count doesn't matter. Fixed once assigned
+  (voiding #3 doesn't renumber the others).
+- **`invoice_number` — opaque public code** (e.g. `INV-7F3K9Q`). Printed on the client-facing
+  invoice. Random/non-sequential, so it reveals nothing about how many jobs the freelancer has done.
 
-## 4. Status lifecycle
+**Why both:** the freelancer gets a clean private running count; the outside world sees an opaque
+code. Best of both worlds.
 
-`draft → sent → paid`, governed by the `TRANSITIONS` map in §3. `sent → draft` allowed for
-pull-backs; `paid` is terminal.
+**Display:** dashboard list leads with the `seq #`; the invoice detail page shows **both**, with
+the opaque code clearly labelled "Invoice No" (that's what clients quote back); the opaque code is
+**searchable**. Drafts show "Draft" (no numbers yet).
 
-## 5. Deliverables produced in the planning chat
+The counter only ever increments, so deletions/voids leave an **explained gap** and numbers are
+never reused or rewound — which is the correct, audit-friendly behaviour for invoicing.
 
-- **v2 brief** — the agreed source of truth (lived in the planning chat's workspace; this file
-  is the in-project consolidation of it).
-- **ERD** — now in this folder as `Database.drawio` (v2 fields applied).
-- **Wireframes** — all 8 pages, including the print-target invoice detail and the dynamic
-  line-item form (the riskiest UI piece).
-- **Trello cards** — paste-ready, with the status-PATCH card matching the transition map.
+## 5. Invoice lifecycle & edit/void policy
 
-## 6. Known routes
+Statuses: `draft`, `issued`, `paid`, `cancelled`. Transition rules (enforced in the controller):
 
-16 API routes were defined. The only one named explicitly in the planning chat is **Route 16 —
-deactivate user** (must flip `is_active` and be enforced at sign-in with a 403). The full route
-table lives in the v2 brief from the planning chat and should be imported here when available.
+```js
+const TRANSITIONS = {
+  draft:     ["issued"],            // issuing assigns invoice_seq + invoice_number
+  issued:    ["paid", "cancelled"], // can be paid, or voided
+  paid:      [],                    // terminal — corrections via credit note
+  cancelled: [],                    // terminal
+};
+```
 
-## 7. Open items / before building
+- **Create** = a `draft`, no number, fully editable. **Only `clientId` is required** — line items
+  and everything else are optional for a draft. Defaults: **`issueDate` → today**, **`dueDate` →
+  issue + 30 days**, **`taxRate` → 0**, and **`subtotal` → 0** when there are no line items yet.
+  Line items may also be **partial** (e.g. a row with only a gig role). Completeness — ≥ 1 line
+  item, each fully filled in — is enforced at **issue**, not at draft.
+- **Issue** (`draft → issued`) = atomically assign `invoice_seq` (counter++) and a unique opaque
+  `invoice_number`.
+- **Editing content** (fix a typo in price/quantity/description) is allowed **any time the status
+  is not `paid`** — same invoice, same number, no void needed. Once `paid`, the invoice is
+  **locked**; corrections happen via a credit note / new invoice.
+- **Deleting:** a `draft` is hard-deleted (costs nothing). An unwanted **issued** invoice is
+  **voided** (`status: cancelled`) rather than deleted, so its number stays in the books to explain
+  the gap.
 
-- **Instructor sign-off (rubric 6.2):** run the stack approval _and_ the schema additions
-  (`is_active`, `paid_at`, timestamps, per-user unique) past the instructor together, so the ERD
-  you present is the one you build.
-- **Import the rest of the v2 brief** — the full 8-page wireframe set, the 16-route table, and the
-  Trello cards were created in the separate planning chat and are not yet in this folder.
+## 6. Build progress
 
-## 8. Gaps in this consolidation
+- **Auth — done & tested:** sign-up (PUT), sign-in (POST), `requireAuth` middleware, `GET /me`.
+- **Clients CRUD — done & tested:** create (PUT) / list / get / update (PATCH) / delete, all
+  ownership-scoped, guard-claused.
+- **Invoices — in progress:** `createInvoice` (draft + nested line items, server-computed subtotal,
+  client-ownership check) and `listInvoices` built; `createInvoice` revised to the **draft-only**
+  design (no number at create). **Next:** the issue transition (assign both numbers in a
+  transaction), get-one (with line items), edit (unless paid), and void.
+- **Testing:** via Bruno (collection with `{{server}}` + `{{token}}` auto-captured from sign-in).
+- **Frontend:** not started yet.
 
-This brief is reconstructed from the planning-chat transcript, which summarized (not quoted) the
-file contents. The exact 8 page names, the full 16-route table, and the complete original feature
-list are not reproduced here verbatim — pull them from the v2 brief file when you bring it over.
+## 7. History — the original 7 "v2" schema changes (kept for instructor context)
+
+These were the reviewed-and-accepted changes that got us here. Note items 3 and 5 have since
+**evolved** — see §4 (numbering) and §5 (lifecycle) for the current design.
+
+1. **`is_active` on User** — deactivation enforced at sign-in (and now on every request) with a 403.
+2. **`paid_at` on Invoice** — dashboard groups earnings by collection date.
+3. **`@@unique([userId, invoiceNumber])`** — per-user uniqueness. _(Evolved: numbers are now
+   system-generated, and there's also `@@unique([userId, invoiceSeq])`.)_
+4. **`createdAt @default(now())` / `updatedAt @updatedAt`** — Prisma maintains `updatedAt`.
+5. **Status transition map** — _(Evolved: lifecycle is now `draft → issued → paid` + `cancelled`;
+   see §5 for the current map. The old `sent → draft` rollback was dropped in favour of
+   edit-while-unpaid.)_
+6. **Decimal-at-the-boundary** — `Number()` Prisma `Decimal` strings before math.
+7. **Minor hygiene** — per-user numbering, timestamp handling, transition map.
+
+## 8. Open items / decisions
+
+- **Field defaults on create (decided):** `issueDate` → today; `dueDate` → issue + 30 days;
+  `taxRate` → 0 (no tax). **Only `clientId` is required at create** — line items are optional for a
+  draft and required only at **issue**.
+- **Import remaining planning-chat deliverables** — the full 8-page wireframe set, the 16-route
+  table, and the Trello cards still live in the original planning chat.
+- **Frontend** — not started.
+
+## 9. Gaps in this consolidation
+
+The exact 8 page names and full 16-route table were summarized (not quoted) in the planning-chat
+transcript — pull them from the original v2 brief file when you bring it over.
