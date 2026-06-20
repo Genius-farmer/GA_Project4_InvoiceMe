@@ -98,6 +98,29 @@ export async function listInvoices(req, res) {
   }
 }
 
+// GET /api/invoices/:id - get specific invoice details, with its client & line items
+export async function getInvoice(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid invoice id" });
+    }
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, userId: req.user.id }, //ownership guard
+      include: { client: true, lineItems: true }, //everything the details/print view needs
+    });
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    return res.json({ invoice });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+}
+
 export async function issueInvoice(req, res) {
   try {
     const id = Number(req.params.id);
@@ -253,6 +276,120 @@ export async function cancelInvoice(req, res) {
     });
 
     return res.json({ invoice: cancelled });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+}
+
+// PATCH /api/invoices/:id - edit invoice content (blocked once paid or cancelled)
+export async function updateInvoice(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid invoice id" });
+    }
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, userId: req.user.id },
+    });
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    //guard: only a live invoice (draft or issued) can be edited
+    if (invoice.status === "paid" || invoice.status === "cancelled") {
+      return res
+        .status(409)
+        .json({ error: `A '${invoice.status}' invoice cannot be edited` });
+    }
+
+    const { clientId, issueDate, dueDate, taxRate, notes, term, lineItems } =
+      req.body ?? {};
+
+    // build a partial update - only the fields that were actually sent
+    const data = {};
+
+    if (clientId !== undefined) {
+      // if changing client, it must still be one you own
+      const client = await prisma.client.findFirst({
+        where: { id: Number(clientId), userId: req.user.id },
+      });
+      if (!client) {
+        return res.status(404).json({ error: "Client not found" });
+      }
+      data.clientId = Number(clientId);
+    }
+    if (issueDate !== undefined) data.issueDate = new Date(issueDate);
+    if (dueDate !== undefined) data.dueDate = new Date(dueDate);
+    if (taxRate !== undefined) data.taxRate = Number(taxRate);
+    if (notes !== undefined) data.notes = notes;
+    if (term !== undefined) data.term = term;
+
+    // if line items are provided, replace the whole set and recompute the subtotal
+    if (lineItems !== undefined) {
+      const items = Array.isArray(lineItems) ? lineItems : [];
+      data.subtotal = items.reduce(
+        (sum, item) =>
+          sum + Number(item.quantity ?? 0) * Number(item.unitCost ?? 0),
+        0,
+      );
+      data.lineItems = {
+        deleteMany: {}, // delete existing items - we have to do this before creating the new ones in the same transaction
+        create: items.map((item) => ({
+          gigRole: item.gigRole ?? null,
+          gigDescription: item.gigDescription ?? null,
+          quantity: item.quantity != null ? Number(item.quantity) : null,
+          unitCost: item.unitCost != null ? Number(item.unitCost) : null,
+        })),
+      };
+    }
+
+    // guard: must change at least one field
+    if (Object.keys(data).length === 0) {
+      return res
+        .status(400)
+        .json({ error: "Provide at least one field to update" });
+    }
+
+    const updated = await prisma.invoice.update({
+      where: { id },
+      data,
+      include: { client: true, lineItems: true },
+    });
+
+    return res.json({ invoice: updated });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+}
+
+// DELETE /api/invoices/:id - delete a DRAFT
+export async function deleteInvoice(req, res) {
+  try {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      return res.status(400).json({ error: "Invalid invoice id" });
+    }
+
+    const invoice = await prisma.invoice.findFirst({
+      where: { id, userId: req.user.id },
+    });
+    if (!invoice) {
+      return res.status(404).json({ error: "Invoice not found" });
+    }
+
+    // guard: only drafts can be deleted;
+    if (invoice.status !== "draft") {
+      return res.status(409).json({
+        error: `Only drafts can be deleted - cancel (void) a '${invoice.status}' invoice instead`,
+      });
+    }
+
+    await prisma.invoice.delete({ where: { id } });
+
+    return res.json({ message: "Draft invoice deleted successfully" });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Something went wrong" });
