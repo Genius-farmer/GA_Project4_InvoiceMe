@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+#personal
+project_brief_latest.md
+Database.drawio*
+.$Database.drawio*
