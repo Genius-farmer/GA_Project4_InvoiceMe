@@ -132,3 +132,7 @@ dist/
 # Ignore notes
 /planning/*
 
+
+project_brief_latest.md
+Database.drawio*
+.$Database.drawio*
