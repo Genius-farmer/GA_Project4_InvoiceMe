@@ -22,12 +22,19 @@ enum InvoiceStatus {
 
 model User {
   id              Int     @id @default(autoincrement())
-  username        String  @unique @db.VarChar(30)
-  email           String  @unique @db.VarChar(255)
+  email           String  @unique @db.VarChar(255) // login identifier
   passwordHash    String  @map("password_hash") @db.VarChar(255)
+  displayName     String? @map("display_name") @db.VarChar(60) // app-only label
   role            String  @default("user") @db.VarChar(50)
   isActive        Boolean @default(true) @map("is_active") // enforced at sign-in (403 if false)
   invoiceCounter  Int     @default(0) @map("invoice_counter") // drives the private per-user sequence
+
+  // business profile - snapshotted onto each invoice's billFrom at creation
+  businessName          String? @map("business_name") @db.VarChar(255)
+  businessEmail        String? @map("business_email") @db.VarChar(255)
+  businessAddress      String? @map("business_address") @db.VarChar(255)
+  phone                 String? @db.VarChar(50)
+  paymentInstructions   String? @map("payment_instructions") @db.Text
 
   clients  Client[] // one user has many clients
   invoices Invoice[] // one user has many invoices
@@ -61,6 +68,7 @@ model Invoice {
   taxRate         Decimal       @map("tax_rate") @db.Decimal(5,2)
   notes           String?       @db.VarChar(255) // optional
   term            String?       @db.VarChar(255) // optional
+  billFrom        Json?         @map("bill_from") // snapshot of sender's profile, copied at create
   status          InvoiceStatus @default(draft)
   paidAt          DateTime?     @map("paid_at") @db.Date // nullable, set when paid; dashboard groups by this
   createdAt       DateTime      @default(now()) @map("created_at")

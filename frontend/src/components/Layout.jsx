@@ -13,7 +13,7 @@ export default function Layout() {
 
   return (
     <>
-      <Navbar bg="dark" variant="dark" expand="md">
+      <Navbar bg="dark" variant="dark" expand="md" className="d-print-none">
         <Container>
           <Navbar.Brand as={NavLink} to="/">
             InvoiceMe
@@ -29,7 +29,9 @@ export default function Layout() {
               Invoices
             </Nav.Link>
           </Nav>
-          <span className="text-light me-3">{user?.username}</span>
+          <span className="text-light me-3">
+            {user?.displayName || user?.email}
+          </span>
           <Button variant="outline-light" size="sm" onClick={handleSignout}>
             Sign out
           </Button>

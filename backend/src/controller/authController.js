@@ -13,27 +13,23 @@ function issueToken(user) {
 
 export async function signUp(req, res) {
   try {
-    const { username, email, password } = req.body;
-    if (!username || !email || !password) {
-      return res
-        .status(400)
-        .json({ error: "Username, email, and password are required" });
+    const { email, password, displayName } = req.body ?? {};
+    if (!email || !password) {
+      return res.status(400).json({ error: "Email and password are required" });
     }
 
-    const existing = await prisma.user.findFirst({
-      where: { OR: [{ email }, { username }] },
+    const existing = await prisma.user.findUnique({
+      where: { email },
     });
     if (existing) {
-      return res
-        .status(409)
-        .json({ error: "Email or username already in use" });
+      return res.status(409).json({ error: "Email already in use" });
     }
 
     //hashing the password before storing it in the database
     const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
 
     const user = await prisma.user.create({
-      data: { username, email, passwordHash }, // role + isActive use schema defaults
+      data: { email, passwordHash, displayName: displayName || null },
     });
 
     const token = issueToken(user);

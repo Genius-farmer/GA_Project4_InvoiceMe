@@ -1,6 +1,6 @@
 # Project 4 — Invoice App · Project Brief (Source of Truth)
 
-> Living document. Last updated: 2026-06-17.
+> Living document. Last updated: 2026-06-22.
 
 ## 1. What this is
 
@@ -34,12 +34,15 @@ _collected_), not `issue_date` (money _billed_). Keeping both dates also makes a
 
 ## 3. Data model (current ERD — `Database.drawio`)
 
-**Users** — `id` (PK), `username` (unique), `email` (unique), `password_hash`, `role`,
-`is_active` (boolean), `invoice_counter` (int — drives the private per-user sequence).
+**Users** — `id` (PK), `email` (unique, **the login identifier**), `password_hash`, `role`,
+`is_active`, `invoice_counter`, `display_name` (optional — friendly app-only label, not public;
+formerly `username`), plus the **business profile**: `business_name`, `business_email` (invoice
+contact email, separate from login email), `business_address`, `phone`, `payment_instructions`.
 **Clients** — `id` (PK), `user_id` (FK), `company_name`, `billing_address`, `company_email`.
 **Invoices** — `id` (PK), `user_id` (FK), `client_id` (FK), `invoice_seq` (nullable),
 `invoice_number` (nullable), `issue_date`, `due_date`, `subtotal`, `tax_rate`, `notes`,
-`term`, `status` (enum), `paid_at`, `created_at`, `updated_at`.
+`term`, `status` (enum), `paid_at`, `created_at`, `updated_at`, `bill_from` (**JSON snapshot** of the
+sender's business profile, copied at create — so old invoices stay frozen).
 **Line_items** — `id` (PK), `invoice_id` (FK, cascade delete), `gig_role`, `gig_description`,
 `quantity`, `unit_cost` — **content fields are nullable** so drafts can hold partial line items;
 they're required only at issue.
@@ -97,15 +100,19 @@ const TRANSITIONS = {
 
 ## 6. Build progress
 
-- **Auth — done & tested:** sign-up (PUT), sign-in (POST), `requireAuth` middleware, `GET /me`.
-- **Clients CRUD — done & tested:** create (PUT) / list / get / update (PATCH) / delete, all
-  ownership-scoped, guard-claused.
-- **Invoices — in progress:** `createInvoice` (draft + nested line items, server-computed subtotal,
-  client-ownership check) and `listInvoices` built; `createInvoice` revised to the **draft-only**
-  design (no number at create). **Next:** the issue transition (assign both numbers in a
-  transaction), get-one (with line items), edit (unless paid), and void.
-- **Testing:** via Bruno (collection with `{{server}}` + `{{token}}` auto-captured from sign-in).
-- **Frontend:** not started yet.
+- **Backend — complete & tested (Bruno):** auth (sign-up, sign-in, `requireAuth`, `GET /me`),
+  clients CRUD, invoices (create/list/get/edit/delete + issue/pay/cancel lifecycle with the dual
+  numbering), dashboard (billed vs collected by month).
+- **Frontend — built & working** (React + Vite + React-Bootstrap; CSS Modules reserved for any
+  custom CSS; no inline styles): auth context + `localStorage` token + protected routes + navbar
+  layout; sign-in/up pages; clients CRUD UI; invoices list, create/edit form (dynamic line items),
+  detail/print view with lifecycle buttons (print hides app chrome + the private `invoice_seq`).
+- **In progress:** business profile / Bill-from (see §10) — schema + Settings page + per-invoice
+  snapshot & editor.
+- **Pending:** the **dashboard chart** (backend data ready; the Dashboard page is still a
+  placeholder).
+- **Deferred (agreed):** backend polish — global error handler, `express-validator` input
+  validation, `express-rate-limit` on auth.
 
 ## 7. History — the original 7 "v2" schema changes (kept for instructor context)
 
@@ -136,3 +143,28 @@ These were the reviewed-and-accepted changes that got us here. Note items 3 and 
 
 The exact 8 page names and full 16-route table were summarized (not quoted) in the planning-chat
 transcript — pull them from the original v2 brief file when you bring it over.
+
+## 10. Identity & business profile (Bill-from)
+
+**Login identity (simplified):** login is **email + password** only. `username` was a redundant
+identifier and is renamed to **`display_name`** — optional, non-unique, used only as a friendly
+label in the app UI (navbar); never for login, never on invoices. Sign-up requires just email +
+password.
+
+**Business profile (one editable profile on the account):** the sender's details live on the `User`
+and are edited on a **Settings** page — `business_name`, `business_email` (the invoice contact
+email, *separate* from the login email — no fallback), `business_address`, `phone`,
+`payment_instructions` (single free-text block). All optional; the Bill-from shows **only filled
+fields** (privacy by omission — leave address blank to hide it).
+
+**Bill-from on invoices — snapshot model (old invoices stay frozen):**
+- Each invoice stores its own **`bill_from` JSON snapshot**, copied from the profile **at create**.
+- Editing the profile later affects only **future** invoices; existing drafts/issued/paid keep
+  their snapshot.
+- The bill-from is **editable per invoice** in the invoice form. Two controls: **"Reset to profile"**
+  (re-copy the current profile into this invoice) and a checkbox **"Also save these as my profile
+  defaults"** (on save, also update the profile → future invoices use it; old ones unchanged).
+- **Enforced at issue:** can't issue until the snapshot has the essentials — business name,
+  business email, payment instructions. Drafts stay unrestricted.
+- On the printed invoice, the private `invoice_seq` is hidden; only the opaque `invoice_number`
+  shows (see §4).

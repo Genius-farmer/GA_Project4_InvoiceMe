@@ -7,6 +7,9 @@ import Dashboard from "./pages/Dashboard.jsx";
 import Clients from "./pages/Clients.jsx";
 import Invoices from "./pages/Invoices.jsx";
 
+import InvoiceForm from "./pages/InvoiceForm.jsx";
+import InvoiceDetail from "./pages/InvoiceDetail.jsx";
+
 function App() {
   return (
     <Routes>
@@ -25,6 +28,9 @@ function App() {
         <Route path="/" element={<Dashboard />} />
         <Route path="/clients" element={<Clients />} />
         <Route path="/invoices" element={<Invoices />} />
+        <Route path="/invoices/new" element={<InvoiceForm />} />
+        <Route path="/invoices/:id/edit" element={<InvoiceForm />} />
+        <Route path="/invoices/:id" element={<InvoiceDetail />} />
       </Route>
 
       {/* anything else -> home (which itself redirects to sign-in if logged out) */}

@@ -32,10 +32,10 @@ export function AuthProvider({ children }) {
     setUser(data.user);
   }
 
-  async function signUp(username, email, password) {
+  async function signUp(email, password) {
     const data = await apiFetch("/auth/sign-up", {
       method: "PUT", // your sign-up is PUT
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ email, password }),
     });
     localStorage.setItem("token", data.token);
     setUser(data.user);
