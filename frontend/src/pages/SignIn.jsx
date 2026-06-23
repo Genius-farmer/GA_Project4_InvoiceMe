@@ -65,7 +65,7 @@ export default function SignIn() {
               </Form.Group>
 
               <Button type="submit" className="w-100" disabled={submitting}>
-                {submitting ? "Signing in.." : "Sign in"}
+                {submitting ? "Signing in..." : "Sign in"}
               </Button>
             </Form>
 

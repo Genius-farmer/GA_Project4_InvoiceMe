@@ -10,6 +10,8 @@ import Invoices from "./pages/Invoices.jsx";
 import InvoiceForm from "./pages/InvoiceForm.jsx";
 import InvoiceDetail from "./pages/InvoiceDetail.jsx";
 
+import Settings from "./pages/Settings.jsx";
+
 function App() {
   return (
     <Routes>
@@ -31,6 +33,7 @@ function App() {
         <Route path="/invoices/new" element={<InvoiceForm />} />
         <Route path="/invoices/:id/edit" element={<InvoiceForm />} />
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
+        <Route path="/settings" element={<Settings />} />
       </Route>
 
       {/* anything else -> home (which itself redirects to sign-in if logged out) */}

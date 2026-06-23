@@ -29,9 +29,12 @@ export default function Layout() {
               Invoices
             </Nav.Link>
           </Nav>
-          <span className="text-light me-3">
+          <NavLink
+            to="/settings"
+            className="text-light text-decoration-none me-3"
+          >
             {user?.displayName || user?.email}
-          </span>
+          </NavLink>
           <Button variant="outline-light" size="sm" onClick={handleSignout}>
             Sign out
           </Button>

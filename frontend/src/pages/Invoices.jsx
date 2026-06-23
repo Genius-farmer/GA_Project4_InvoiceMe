@@ -17,7 +17,7 @@ function formatDate(iso) {
 
 // amount the client owes = subtotal + tax (Number() the Decimal strings first!)
 function formatTotal(inv) {
-  const total = Number(inv.subtotal) + (1 + Number(inv.taxRate) * 100);
+  const total = Number(inv.subtotal) * (1 + Number(inv.taxRate) / 100);
   return `$${total.toFixed(2)}`;
 }
 

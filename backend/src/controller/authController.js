@@ -76,3 +76,33 @@ export async function signIn(req, res) {
 export async function me(req, res) {
   return res.json({ user: req.user });
 }
+
+export async function updateProfile(req, res) {
+  try {
+    const {
+      displayName,
+      businessName,
+      businessEmail,
+      businessAddress,
+      phone,
+      paymentInstructions,
+    } = req.body ?? {};
+
+    // only the fields actually provided in the request will be updated, the rest will be left unchanged
+    const data = {};
+    if (displayName !== undefined) data.displayName = displayName;
+    if (businessName !== undefined) data.businessName = businessName;
+    if (businessEmail !== undefined) data.businessEmail = businessEmail;
+    if (businessAddress !== undefined) data.businessAddress = businessAddress;
+    if (phone !== undefined) data.phone = phone;
+    if (paymentInstructions !== undefined)
+      data.paymentInstructions = paymentInstructions;
+
+    const user = await prisma.user.update({ where: { id: req.user.id }, data });
+    const { passwordHash, ...safeUser } = user;
+    return res.json({ user: safeUser });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Something went wrong" });
+  }
+}

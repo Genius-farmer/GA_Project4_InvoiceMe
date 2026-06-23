@@ -19,7 +19,7 @@ const STATUS_VARIANT = {
   cancelled: "dark",
 };
 const formatDate = (iso) =>
-  iso ? new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" }) : "-";
+  iso ? new Date(iso).toLocaleDateString(undefined, { timeZone: "UTC" }) : "—";
 
 export default function InvoiceDetail() {
   const { id } = useParams(); //read :id from the URL
@@ -70,6 +70,7 @@ export default function InvoiceDetail() {
   const taxRate = Number(invoice.taxRate);
   const tax = subtotal * (taxRate / 100);
   const total = subtotal + tax;
+  const billFrom = invoice.billFrom || {};
 
   return (
     <div>
@@ -135,7 +136,33 @@ export default function InvoiceDetail() {
       </div>
 
       <Row className="mb-3">
-        <Col md={6} className="mb-3 mb-md-0">
+        <Col md={4} className="mb-3 mb-md-0">
+          <Card className="h-100">
+            <Card.Body>
+              <Card.Subtitle className="text-muted mb-2">
+                Bill from
+              </Card.Subtitle>
+              {billFrom.businessName && (
+                <div className="fw-semibold">{billFrom.businessName}</div>
+              )}
+              {billFrom.businessAddress && (
+                <div>{billFrom.businessAddress}</div>
+              )}
+              {billFrom.businessEmail && <div>{billFrom.businessEmail}</div>}
+              {billFrom.phone && <div>{billFrom.phone}</div>}
+              {billFrom.paymentInstructions && (
+                <>
+                  <Card.Subtitle className="text-muted mt-3 mb-2">
+                    Payment instructions
+                  </Card.Subtitle>
+                  <div>{billFrom.paymentInstructions}</div>
+                </>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+
+        <Col md={4} className="mb-3 mb-md-0">
           <Card className="h-100">
             <Card.Body>
               <Card.Subtitle className="text-muted mb-2">Bill to</Card.Subtitle>
@@ -145,7 +172,8 @@ export default function InvoiceDetail() {
             </Card.Body>
           </Card>
         </Col>
-        <Col md={6}>
+
+        <Col md={4}>
           <Card className="h-100">
             <Card.Body>
               <div className="d-flex justify-content-between">

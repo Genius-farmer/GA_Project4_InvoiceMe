@@ -1,6 +1,16 @@
 import prisma from "../lib/prisma.js";
 import { randomBytes } from "node:crypto";
 
+function profileSnapshot(user) {
+  return {
+    businessName: user.businessName ?? null,
+    businessEmail: user.businessEmail ?? null,
+    businessAddress: user.businessAddress ?? null,
+    phone: user.phone ?? null,
+    paymentInstructions: user.paymentInstructions ?? null,
+  };
+}
+
 // opaque, non-sequential public code, example: "INV-A7K9Q2X3"
 function generateInvoiceNumber() {
   return `INV-${randomBytes(4).toString("hex").toUpperCase()}`;
@@ -16,8 +26,16 @@ const TRANSITIONS = {
 // PUT /api/invoices - create an invoice (with its line item) for the logged-in user
 export async function createInvoice(req, res) {
   try {
-    const { clientId, issueDate, dueDate, taxRate, notes, term, lineItems } =
-      req.body ?? {}; // all optional - the invoice starts as a flexible draft that can be completed later
+    const {
+      clientId,
+      issueDate,
+      dueDate,
+      taxRate,
+      notes,
+      term,
+      lineItems,
+      billFrom,
+    } = req.body ?? {}; // all optional - the invoice starts as a flexible draft that can be completed later
 
     // guard: only clientId is required.
     if (!clientId) {
@@ -64,6 +82,7 @@ export async function createInvoice(req, res) {
         taxRate: Number(taxRate ?? 0),
         notes,
         term,
+        billFrom: billFrom ?? profileSnapshot(req.user), // default to user's current profile snapshot, but allow overriding at creation time
         lineItems: {
           create: items.map((item) => ({
             gigRole: item.gigRole ?? null,
@@ -166,6 +185,15 @@ export async function issueInvoice(req, res) {
       }
     }
 
+    // guard: the bill-from snapshot must identify you + how to pay
+    const bf = invoice.billFrom || {};
+    if (!bf.businessName || !bf.businessEmail || !bf.paymentInstructions) {
+      return res.status(400).json({
+        error:
+          "Set your business name, business email, and payment instructions in the Settings before issuing.",
+      });
+    }
+
     // recompute the subtotal from the now-complete line items
     const subtotal = invoice.lineItems.reduce(
       (sum, item) => sum + Number(item.quantity) * Number(item.unitCost),
@@ -191,7 +219,7 @@ export async function issueInvoice(req, res) {
               status: "issued",
               subtotal,
             },
-            include: { lineItems: true },
+            include: { client: true, lineItems: true },
           });
         });
         break; // success, exit the retry loop
@@ -237,7 +265,7 @@ export async function payInvoice(req, res) {
         status: "paid",
         paidAt: paidAt ? new Date(paidAt) : new Date(), //default to today if not provided
       },
-      include: { lineItems: true },
+      include: { client: true, lineItems: true },
     });
 
     return res.json({ invoice: paid });
@@ -272,7 +300,7 @@ export async function cancelInvoice(req, res) {
     const cancelled = await prisma.invoice.update({
       where: { id },
       data: { status: "cancelled" },
-      include: { lineItems: true },
+      include: { client: true, lineItems: true },
     });
 
     return res.json({ invoice: cancelled });
@@ -304,8 +332,16 @@ export async function updateInvoice(req, res) {
         .json({ error: `A '${invoice.status}' invoice cannot be edited` });
     }
 
-    const { clientId, issueDate, dueDate, taxRate, notes, term, lineItems } =
-      req.body ?? {};
+    const {
+      clientId,
+      issueDate,
+      dueDate,
+      taxRate,
+      notes,
+      term,
+      lineItems,
+      billFrom,
+    } = req.body ?? {};
 
     // build a partial update - only the fields that were actually sent
     const data = {};
@@ -325,6 +361,7 @@ export async function updateInvoice(req, res) {
     if (taxRate !== undefined) data.taxRate = Number(taxRate);
     if (notes !== undefined) data.notes = notes;
     if (term !== undefined) data.term = term;
+    if (billFrom !== undefined) data.billFrom = billFrom;
 
     // if line items are provided, replace the whole set and recompute the subtotal
     if (lineItems !== undefined) {
