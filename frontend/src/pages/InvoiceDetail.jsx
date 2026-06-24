@@ -77,8 +77,11 @@ export default function InvoiceDetail() {
       <div className="d-flex justify-content-between align-items-start mb-3">
         <div>
           <h1 className="h3 mb-1">
-            {invoice.invoiceNumber || "Draft invoice"}
+            {invoice.invoiceName || "Untitled invoice"}
           </h1>
+          <div className="text-muted mb-1">
+            {invoice.invoiceNumber || "Draft"}
+          </div>
           <Badge bg={STATUS_VARIANT[invoice.status]}>{invoice.status}</Badge>
           {invoice.invoiceSeq && (
             <span className="text-muted ms-2 d-print-none">

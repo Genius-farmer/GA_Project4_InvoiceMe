@@ -60,6 +60,7 @@ model Invoice {
   id              Int           @id @default(autoincrement())
   userId          Int           @map("user_id")
   clientId        Int           @map("client_id")
+  invoiceName           String        @default("") @db.VarChar(255) // invoice name; required by the controller, default eases migrating existing rows
   invoiceSeq      Int?          @map("invoice_seq")     //private per-user sequence, set at issue
   invoiceNumber   String?       @map("invoice_number") @db.VarChar(255) // opaque public code, set at issue
   issueDate       DateTime      @map("issue_date") @db.Date

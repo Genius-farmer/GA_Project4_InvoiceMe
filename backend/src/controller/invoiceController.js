@@ -28,6 +28,7 @@ export async function createInvoice(req, res) {
   try {
     const {
       clientId,
+      invoiceName,
       issueDate,
       dueDate,
       taxRate,
@@ -39,9 +40,9 @@ export async function createInvoice(req, res) {
 
     // guard: only clientId is required.
     if (!clientId) {
-      return res.status(400).json({
-        error: "clientId is required",
-      });
+      if (!invoiceName || !invoiceName.trim()) {
+        return res.status(400).json({ error: "Invoice name is required" });
+      }
     }
 
     // guard: the client must exist AND belong to the logged-in user
@@ -76,6 +77,7 @@ export async function createInvoice(req, res) {
       data: {
         userId: req.user.id,
         clientId: Number(clientId),
+        invoiceName: invoiceName.trim(),
         issueDate: issue,
         dueDate: due,
         subtotal,
@@ -334,6 +336,7 @@ export async function updateInvoice(req, res) {
 
     const {
       clientId,
+      invoiceName,
       issueDate,
       dueDate,
       taxRate,
@@ -356,6 +359,13 @@ export async function updateInvoice(req, res) {
       }
       data.clientId = Number(clientId);
     }
+    if (invoiceName !== undefined) {
+      if (!invoiceName.trim()) {
+        return res.status(400).json({ error: "Invoice name cannot be empty" });
+      }
+      data.invoiceName = invoiceName.trim();
+    }
+
     if (issueDate !== undefined) data.issueDate = new Date(issueDate);
     if (dueDate !== undefined) data.dueDate = new Date(dueDate);
     if (taxRate !== undefined) data.taxRate = Number(taxRate);

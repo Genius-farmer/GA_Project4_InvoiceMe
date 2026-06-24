@@ -35,6 +35,7 @@ export default function InvoiceForm() {
   const [loading, setLoading] = useState(true);
 
   const [clientId, setClientId] = useState("");
+  const [invoiceName, setInvoiceName] = useState("");
   const [issueDate, setIssueDate] = useState("");
   const [dueDate, setDueDate] = useState("");
   const [taxRate, setTaxRate] = useState("");
@@ -59,6 +60,7 @@ export default function InvoiceForm() {
         if (isEdit) {
           const { invoice } = await apiFetch(`/invoices/${id}`);
           setClientId(String(invoice.clientId));
+          setInvoiceName(invoice.invoiceName ?? "");
           setIssueDate(invoice.issueDate.slice(0, 10)); // ISO --> YYYY-MM-DD for the date input
           setDueDate(invoice.dueDate.slice(0, 10));
           setTaxRate(String(invoice.taxRate));
@@ -125,6 +127,7 @@ export default function InvoiceForm() {
 
   async function handleSubmit(e) {
     e.preventDefault();
+    const wantIssue = e.nativeEvent.submitter?.name === "issue";
     setError("");
     setSaving(true);
     try {
@@ -144,13 +147,14 @@ export default function InvoiceForm() {
 
       const body = {
         clientId,
+        invoiceName,
         issueDate: issueDate || undefined,
         dueDate: dueDate || undefined,
         taxRate: taxRate || undefined,
         term: term || null,
         notes: notes || null,
-        lineItems: items,
         billFrom: billFromPayload,
+        lineItems: items,
       };
 
       if (saveToProfile) {
@@ -166,14 +170,27 @@ export default function InvoiceForm() {
           method: "PATCH",
           body: JSON.stringify(body),
         });
-        navigate(`/invoices/${id}`); // back to the detail
-      } else {
-        await apiFetch("/invoices", {
-          method: "PUT",
-          body: JSON.stringify(body),
-        });
-        navigate("/invoices"); // back to the list
+        navigate(`/invoices/${id}`);
+        return;
       }
+
+      // create as a draft first
+      const { invoice } = await apiFetch("/invoices", {
+        method: "PUT",
+        body: JSON.stringify(body),
+      });
+
+      // "Create & issue": issue the freshly-created draft
+      if (wantIssue) {
+        try {
+          await apiFetch(`/invoices/${invoice.id}/issue`, { method: "PATCH" });
+        } catch (issueErr) {
+          window.alert(
+            `Saved as a draft, but couldn't issue it yet: ${issueErr.message}`,
+          );
+        }
+      }
+      navigate(`/invoices/${invoice.id}`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -218,6 +235,16 @@ export default function InvoiceForm() {
                     {selectedClient.companyEmail}
                   </Form.Text>
                 )}
+              </Form.Group>
+
+              <Form.Group className="mb-3" controlId="invoiceName">
+                <Form.Label>Invoice name</Form.Label>
+                <Form.Control
+                  value={invoiceName}
+                  onChange={(e) => setInvoiceName(e.target.value)}
+                  placeholder="e.g. March website work"
+                  required
+                />
               </Form.Group>
             </Col>
             <Col md={3}>
@@ -427,9 +454,25 @@ export default function InvoiceForm() {
           </Card>
 
           <div className="d-flex gap-2">
-            <Button type="submit" disabled={saving}>
-              {saving ? "Saving…" : isEdit ? "Save changes" : "Create draft"}
-            </Button>
+            {isEdit ? (
+              <Button type="submit" name="draft" disabled={saving}>
+                {saving ? "Saving…" : "Save changes"}
+              </Button>
+            ) : (
+              <>
+                <Button
+                  type="submit"
+                  name="draft"
+                  variant="outline-primary"
+                  disabled={saving}
+                >
+                  {saving ? "Saving…" : "Save as draft"}
+                </Button>
+                <Button type="submit" name="issue" disabled={saving}>
+                  {saving ? "Saving…" : "Create & issue"}
+                </Button>
+              </>
+            )}
             <Button
               variant="secondary"
               onClick={() => navigate(isEdit ? `/invoices/${id}` : "/invoices")}
