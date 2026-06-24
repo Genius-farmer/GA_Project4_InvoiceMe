@@ -56,11 +56,15 @@ export default function InvoiceDetail() {
       setActing(false);
     }
   }
-
   function openPayModal() {
-    setPaidDate(new Date().toISOString().slice(0, 10)); // default to today
+    setPaidDate(
+      invoice.paidAt
+        ? invoice.paidAt.slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+    );
     setShowPayModal(true);
   }
+
   async function confirmPaid() {
     setShowPayModal(false);
     await runAction("pay", { paidAt: paidDate });
@@ -109,6 +113,7 @@ export default function InvoiceDetail() {
           </Button>
           {invoice.status === "draft" && (
             <>
+              z
               <Button
                 as={Link}
                 to={`/invoices/${id}/edit`}
@@ -133,6 +138,13 @@ export default function InvoiceDetail() {
               >
                 Edit
               </Button>
+
+              {invoice.status === "paid" && (
+                <Button variant="outline-secondary" onClick={openPayModal}>
+                  Edit paid date
+                </Button>
+              )}
+
               <Button
                 variant="success"
                 onClick={openPayModal}
@@ -289,7 +301,9 @@ export default function InvoiceDetail() {
 
       <Modal show={showPayModal} onHide={() => setShowPayModal(false)}>
         <Modal.Header closeButton>
-          <Modal.Title>Mark as paid</Modal.Title>
+          <Modal.Title>
+            {invoice.status === "paid" ? "Edit payment date" : "Mark as paid"}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           <Form.Group controlId="paidDate">
@@ -310,7 +324,11 @@ export default function InvoiceDetail() {
             Cancel
           </Button>
           <Button variant="success" onClick={confirmPaid} disabled={acting}>
-            {acting ? "Saving…" : "Mark paid"}
+            {acting
+              ? "Saving…"
+              : invoice.status === "paid"
+                ? "Save"
+                : "Mark paid"}
           </Button>
         </Modal.Footer>
       </Modal>

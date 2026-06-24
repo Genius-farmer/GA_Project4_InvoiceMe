@@ -254,11 +254,11 @@ export async function payInvoice(req, res) {
       return res.status(404).json({ error: "Invoice not found" });
     }
 
-    // guard: only an issued invoice can be paid
-    if (!TRANSITIONS[invoice.status].includes("paid")) {
-      return res
-        .status(409)
-        .json({ error: `Cannot pay an invoice that is '${invoice.status}'` });
+    // an issued invoice can be paid; an already-paid one can have its date corrected
+    if (invoice.status !== "issued" && invoice.status !== "paid") {
+      return res.status(409).json({
+        error: `Cannot set a paid date on a '${invoice.status}' invoice`,
+      });
     }
 
     const paid = await prisma.invoice.update({

@@ -170,7 +170,11 @@ export default function Invoices() {
 
   function openPay(inv) {
     setPayTarget(inv);
-    setPayDate(new Date().toISOString().slice(0, 10)); // default today
+    setPayDate(
+      inv.paidAt
+        ? inv.paidAt.slice(0, 10)
+        : new Date().toISOString().slice(0, 10),
+    );
   }
   async function confirmPay() {
     if (!payTarget) return;
@@ -349,6 +353,16 @@ export default function Invoices() {
                           Mark paid
                         </Button>
                       )}
+
+                      {inv.status === "paid" && (
+                        <Button
+                          size="sm"
+                          variant="outline-secondary"
+                          onClick={() => openPay(inv)}
+                        >
+                          Edit paid date
+                        </Button>
+                      )}
                     </div>
                   </td>
                 </tr>
@@ -367,7 +381,11 @@ export default function Invoices() {
 
       <Modal show={payTarget !== null} onHide={() => setPayTarget(null)}>
         <Modal.Header closeButton>
-          <Modal.Title>Mark as paid</Modal.Title>
+          <Modal.Title>
+            {payTarget?.status === "paid"
+              ? "Edit payment date"
+              : "Mark as paid"}
+          </Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {payTarget && (
@@ -391,7 +409,11 @@ export default function Invoices() {
             Cancel
           </Button>
           <Button variant="success" onClick={confirmPay} disabled={paying}>
-            {paying ? "Saving…" : "Mark paid"}
+            {paying
+              ? "Saving…"
+              : payTarget?.status === "paid"
+                ? "Save"
+                : "Mark paid"}
           </Button>
         </Modal.Footer>
       </Modal>
