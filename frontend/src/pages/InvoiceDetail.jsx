@@ -9,6 +9,8 @@ import {
   Alert,
   Row,
   Col,
+  Modal,
+  Form,
 } from "react-bootstrap";
 import { apiFetch } from "../api";
 
@@ -29,6 +31,8 @@ export default function InvoiceDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [acting, setActing] = useState(false); // for actions that change status
+  const [showPayModal, setShowPayModal] = useState(false);
+  const [paidDate, setPaidDate] = useState("");
 
   useEffect(() => {
     apiFetch(`/invoices/${id}`)
@@ -38,18 +42,28 @@ export default function InvoiceDetail() {
   }, [id]);
 
   // PATCH /invoices/:id/{issue|pay|cancel} - then swap in the returned invoice
-  async function runAction(action) {
+  async function runAction(action, body) {
     setActing(true);
     try {
       const data = await apiFetch(`/invoices/${id}/${action}`, {
         method: "PATCH",
+        body: body ? JSON.stringify(body) : undefined,
       });
       setInvoice(data.invoice);
     } catch (err) {
-      window.alert(err.message); // example - cannot issue an invoice with no line item
+      window.alert(err.message);
     } finally {
       setActing(false);
     }
+  }
+
+  function openPayModal() {
+    setPaidDate(new Date().toISOString().slice(0, 10)); // default to today
+    setShowPayModal(true);
+  }
+  async function confirmPaid() {
+    setShowPayModal(false);
+    await runAction("pay", { paidAt: paidDate });
   }
 
   async function handleDelete() {
@@ -121,7 +135,7 @@ export default function InvoiceDetail() {
               </Button>
               <Button
                 variant="success"
-                onClick={() => runAction("pay")}
+                onClick={openPayModal}
                 disabled={acting}
               >
                 Mark paid
@@ -272,6 +286,34 @@ export default function InvoiceDetail() {
       >
         ← Back to invoices
       </Button>
+
+      <Modal show={showPayModal} onHide={() => setShowPayModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Mark as paid</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form.Group controlId="paidDate">
+            <Form.Label>Payment date</Form.Label>
+            <Form.Control
+              type="date"
+              value={paidDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setPaidDate(e.target.value)}
+            />
+            <Form.Text className="text-muted">
+              When did the money actually arrive? Defaults to today.
+            </Form.Text>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPayModal(false)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={confirmPaid} disabled={acting}>
+            {acting ? "Saving…" : "Mark paid"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }

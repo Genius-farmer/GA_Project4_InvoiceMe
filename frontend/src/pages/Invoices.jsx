@@ -9,6 +9,7 @@ import {
   Form,
   Row,
   Col,
+  Modal,
 } from "react-bootstrap";
 import { apiFetch } from "../api";
 import styles from "./Invoices.module.css";
@@ -81,6 +82,10 @@ export default function Invoices() {
   const [sortDir, setSortDir] = useState("desc");
   const [selected, setSelected] = useState(() => new Set());
   const [deleting, setDeleting] = useState(false);
+
+  const [payTarget, setPayTarget] = useState(null); // the invoice being marked paid
+  const [payDate, setPayDate] = useState("");
+  const [paying, setPaying] = useState(false);
 
   useEffect(() => {
     apiFetch("/invoices")
@@ -160,6 +165,29 @@ export default function Invoices() {
       window.alert(err.message);
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function openPay(inv) {
+    setPayTarget(inv);
+    setPayDate(new Date().toISOString().slice(0, 10)); // default today
+  }
+  async function confirmPay() {
+    if (!payTarget) return;
+    setPaying(true);
+    try {
+      const data = await apiFetch(`/invoices/${payTarget.id}/pay`, {
+        method: "PATCH",
+        body: JSON.stringify({ paidAt: payDate }),
+      });
+      setInvoices((prev) =>
+        prev.map((inv) => (inv.id === data.invoice.id ? data.invoice : inv)),
+      );
+      setPayTarget(null);
+    } catch (err) {
+      window.alert(err.message);
+    } finally {
+      setPaying(false);
     }
   }
 
@@ -303,14 +331,25 @@ export default function Invoices() {
                     <Badge bg={STATUS_VARIANTS[inv.status]}>{inv.status}</Badge>
                   </td>
                   <td>
-                    <Button
-                      as={Link}
-                      to={`/invoices/${inv.id}`}
-                      size="sm"
-                      variant="outline-primary"
-                    >
-                      View
-                    </Button>
+                    <div className="d-flex gap-2">
+                      <Button
+                        as={Link}
+                        to={`/invoices/${inv.id}`}
+                        size="sm"
+                        variant="outline-primary"
+                      >
+                        View
+                      </Button>
+                      {inv.status === "issued" && (
+                        <Button
+                          size="sm"
+                          variant="success"
+                          onClick={() => openPay(inv)}
+                        >
+                          Mark paid
+                        </Button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -325,6 +364,37 @@ export default function Invoices() {
           </Table>
         </>
       )}
+
+      <Modal show={payTarget !== null} onHide={() => setPayTarget(null)}>
+        <Modal.Header closeButton>
+          <Modal.Title>Mark as paid</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {payTarget && (
+            <p className="text-muted mb-3">{payTarget.invoiceName}</p>
+          )}
+          <Form.Group controlId="listPayDate">
+            <Form.Label>Payment date</Form.Label>
+            <Form.Control
+              type="date"
+              value={payDate}
+              max={new Date().toISOString().slice(0, 10)}
+              onChange={(e) => setPayDate(e.target.value)}
+            />
+            <Form.Text className="text-muted">
+              When did the money actually arrive? Defaults to today.
+            </Form.Text>
+          </Form.Group>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setPayTarget(null)}>
+            Cancel
+          </Button>
+          <Button variant="success" onClick={confirmPay} disabled={paying}>
+            {paying ? "Saving…" : "Mark paid"}
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
   );
 }
