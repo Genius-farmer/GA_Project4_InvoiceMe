@@ -28,6 +28,11 @@ export default function Layout() {
             <Nav.Link as={NavLink} to="/invoices">
               Invoices
             </Nav.Link>
+            {user?.role === "admin" && (
+              <Nav.Link as={NavLink} to="/admin">
+                Admin
+              </Nav.Link>
+            )}
           </Nav>
           <NavLink
             to="/settings"

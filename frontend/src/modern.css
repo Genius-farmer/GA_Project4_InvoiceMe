@@ -1,0 +1,106 @@
+/* ============================================================
+   modern.css — InvoiceMe light refresh (single royal-blue accent)
+   Drop-in theme. Import AFTER bootstrap in main.jsx:
+       import "bootstrap/dist/css/bootstrap.min.css";
+       import "./modern.css";            <-- add this line
+   Touches no components. Delete the import line to revert.
+   ============================================================ */
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* ── Brand tokens (Bootstrap reads these at runtime) ───────── */
+:root {
+  --bs-primary: #2B2BFF;
+  --bs-primary-rgb: 43, 43, 255;
+  --bs-link-color: #2B2BFF;
+  --bs-link-color-rgb: 43, 43, 255;
+  --bs-link-hover-color: #1A1AE0;
+  --bs-body-font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --bs-body-bg: #F7F8FA;        /* soft off-white canvas */
+  --bs-body-color: #1F2937;     /* slate text, not pure black */
+  --bs-border-color: #ECEEF2;
+}
+
+body { letter-spacing: -0.01em; }
+h1, h2, h3, h4, .h1, .h2, .h3 { font-weight: 700; letter-spacing: -0.02em; color: #111827; }
+
+/* ── Primary buttons (recolored via the button's own vars) ── */
+.btn-primary {
+  --bs-btn-bg: #2B2BFF;
+  --bs-btn-border-color: #2B2BFF;
+  --bs-btn-hover-bg: #1A1AE0;
+  --bs-btn-hover-border-color: #1A1AE0;
+  --bs-btn-active-bg: #1A1AE0;
+  --bs-btn-active-border-color: #1A1AE0;
+  --bs-btn-disabled-bg: #2B2BFF;
+  --bs-btn-disabled-border-color: #2B2BFF;
+  font-weight: 600;
+}
+.btn-outline-primary {
+  --bs-btn-color: #2B2BFF;
+  --bs-btn-border-color: #C2C6FF;
+  --bs-btn-hover-bg: #2B2BFF;
+  --bs-btn-hover-border-color: #2B2BFF;
+  --bs-btn-active-bg: #1A1AE0;
+}
+.btn { border-radius: 10px; }
+.btn-sm { border-radius: 8px; }
+
+/* ── Cards: borderless, soft shadow, rounded ───────────────── */
+.card {
+  border: none;
+  border-radius: 14px;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.07);
+}
+.card .card-body { padding: 1.25rem; }
+
+/* ── Tables: drop the gridlines, keep airy rows ────────────── */
+.table {
+  --bs-table-bg: transparent;
+  --bs-table-striped-bg: #FAFBFC;
+  border-color: #F1F3F5;
+  vertical-align: middle;
+}
+.table > :not(caption) > * > * {
+  border-left: 0;
+  border-right: 0;
+  padding: 0.85rem 0.9rem;
+}
+.table > thead th {
+  font-weight: 600;
+  font-size: 0.8rem;
+  color: #6B7280;
+  border-bottom: 1px solid #ECEEF2;
+}
+.table-bordered > :not(caption) > * > * {
+  border: 0;
+  border-bottom: 1px solid #F1F3F5;
+}
+
+/* ── Soft status badges (draft / issued / paid / cancelled) ── */
+.badge { font-weight: 600; padding: 0.4em 0.75em; border-radius: 999px; }
+.badge.bg-primary   { background-color: #ECEDFF !important; color: #2B2BFF !important; }
+.badge.bg-success   { background-color: #ECFDF5 !important; color: #059669 !important; }
+.badge.bg-secondary { background-color: #F1F3F5 !important; color: #6B7280 !important; }
+.badge.bg-dark      { background-color: #FDECEC !important; color: #B42318 !important; }
+
+/* ── Inputs: rounded, blue focus ring ──────────────────────── */
+.form-control, .form-select {
+  border-radius: 10px;
+  border-color: #E3E6EB;
+}
+.form-control:focus, .form-select:focus {
+  border-color: #2B2BFF;
+  box-shadow: 0 0 0 0.2rem rgba(43, 43, 255, 0.15);
+}
+
+/* ── Navbar stays dark — a dark top bar over a light body is a
+      clean, modern combo and needs no component change ─────── */
+.navbar { box-shadow: 0 1px 0 rgba(0, 0, 0, 0.04); }
+
+/* ── Print: invoice prints clean black-on-white, untouched ── */
+@media print {
+  body { background: #fff !important; }
+  .card { box-shadow: none !important; border: 1px solid #ddd !important; }
+  .badge { background: transparent !important; color: #000 !important; border: 1px solid #999; }
+}

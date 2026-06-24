@@ -166,13 +166,13 @@ export default function Dashboard() {
                   dataKey="collected"
                   name="Collected"
                   stackId="a"
-                  fill="#198754"
+                  fill="#2B2BFF"
                 />
                 <Bar
                   dataKey="outstanding"
                   name="Outstanding"
                   stackId="a"
-                  fill="#ffc107"
+                  fill="#C2C6FF"
                 />
               </BarChart>
             </ResponsiveContainer>

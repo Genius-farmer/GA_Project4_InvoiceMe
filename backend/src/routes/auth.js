@@ -11,6 +11,7 @@ const router = Router();
 
 router.put("/sign-up", signUp);
 router.post("/sign-in", signIn);
+router.get("/me", requireAuth, me);
 router.patch("/me", requireAuth, updateProfile);
 
 export default router;

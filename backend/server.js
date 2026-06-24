@@ -7,10 +7,11 @@ import prisma from "./src/lib/prisma.js";
 
 import authRouter from "./src/routes/auth.js";
 import clientRouter from "./src/routes/clients.js";
-import { requireAuth } from "./src/middleware/auth.js";
+import { requireAuth, requireAdmin } from "./src/middleware/auth.js";
 import invoiceRouter from "./src/routes/invoices.js";
 
 import dashboardRouter from "./src/routes/dashboard.js";
+import adminRouter from "./src/routes/admin.js";
 
 const app = express();
 const PORT = process.env.PORT || 3000; //3000 is backup
@@ -25,6 +26,8 @@ app.use("/api/clients", requireAuth, clientRouter);
 app.use("/api/invoices", requireAuth, invoiceRouter);
 
 app.use("/api/dashboard", requireAuth, dashboardRouter);
+
+app.use("/api/admin", requireAuth, requireAdmin, adminRouter);
 
 // health check - also indicates the DB connection works end to end
 app.get("/api/health", async (req, res) => {

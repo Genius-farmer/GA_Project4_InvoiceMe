@@ -6,6 +6,7 @@ import SignUp from "./pages/SignUp.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import Clients from "./pages/Clients.jsx";
 import Invoices from "./pages/Invoices.jsx";
+import Admin from "./pages/Admin.jsx";
 
 import InvoiceForm from "./pages/InvoiceForm.jsx";
 import InvoiceDetail from "./pages/InvoiceDetail.jsx";
@@ -34,6 +35,8 @@ function App() {
         <Route path="/invoices/:id/edit" element={<InvoiceForm />} />
         <Route path="/invoices/:id" element={<InvoiceDetail />} />
         <Route path="/settings" element={<Settings />} />
+
+        <Route path="/admin" element={<Admin />} />
       </Route>
 
       {/* anything else -> home (which itself redirects to sign-in if logged out) */}
