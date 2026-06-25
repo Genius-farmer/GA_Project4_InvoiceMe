@@ -113,7 +113,6 @@ export default function InvoiceDetail() {
           </Button>
           {invoice.status === "draft" && (
             <>
-              z
               <Button
                 as={Link}
                 to={`/invoices/${id}/edit`}
